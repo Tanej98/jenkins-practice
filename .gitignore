@@ -7,6 +7,9 @@
 !/jobs
 !/.gitignore
 !/*.xml
+!/Dockerfile
+!/jenkinsfile
+!/*.py
 
 #ignore all files in jobs subdirectories except for folders
 #note: git doesn't track folders, only file content
