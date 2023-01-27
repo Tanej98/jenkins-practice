@@ -1,36 +1,91 @@
+// template file
 pipeline {
-    agent { 
-        node {
-            label 'docker-agent-python'
-            }
-      }
-    triggers {
-        pollSCM '*/5 * * * *'
+    
+    agent any
+    
+    environment {
+        NEW_VERSION = '1.3.0'
+        SERVER_CREDENTIALS = credentials('id-of-credenials') //need to install aditional package
     }
+    
+    //tools used in software like gradle, maven and jdk
+    // for other we need to use wrapper inside the stages
+    tools {
+    }
+    
+    parameters {
+        string(name: 'VERSION', defaultValue: '', description: 'version to deploy on prod')
+        choice(name: 'VERSION', choices: ['1.1.0', '1.2.0', '1.3.0'], description: '')
+        booleanParam(name: 'executeTests', defaultValue: True, description:'')
+        
+    }
+    
     stages {
-        stage('Build') {
+        
+        stage("build") {
+            
+            // conditions
+             when {
+                 expression {
+                     BRANCH_NAME == 'dev' && CODE_CHANGES == true
+                 }
+             }
+            
             steps {
-                echo "Building.."
-                sh '''
-                echo "doing build stuff.."
-                '''
+                
+                script {
+                    // can write code in groovy script
+                    gv = load "script.groovy" //  create script.groovy
+                    
+                    gv.buildApp() // call functions from the script
+                }
+                
+                echo 'Building the application...' 
+                echo "VESION ${NEW_VERSION}"
             }
         }
-        stage('Test') {
+        
+         stage("test") {
+            
+             // conditions
+             when {
+                 expression {
+                     BRANCH_NAME == 'dev' || BRANCH_NAME == 'master' && params.executeTests == true
+                 }
+             }
+             
             steps {
-                echo "Testing.."
-                sh '''
-                echo "doing test stuff.."
-                '''
+                echo "Testing the application..."    
             }
         }
-        stage('Deliver') {
+        
+         stage("deploy") {
+            
             steps {
-                echo 'Deliver....'
-                sh '''
-                echo "doing delivery stuff.."
-                '''
+                echo "Deploying the application..." 
+                
+                withCredentials([
+                    usernamePassword(credentials: 'id-of-credentials', usernameVariable: USER, passwordVariable: PWD)
+                ]){
+                    sh "some script ${USER} ${PWD}"
+                }
             }
+        }
+    }
+    
+    // after all stages are completed
+    post {
+        
+        always {
+            
+        }
+        
+        success {
+            
+        }
+        
+        failure {
+            
         }
     }
 }
