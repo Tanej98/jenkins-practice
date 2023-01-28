@@ -1,35 +1,28 @@
 pipeline {
-    agent { 
-        node {
-            label 'docker-agent-python'
-            }
-      }
-    triggers {
-        pollSCM '*/5 * * * *'
+    agent any
+    options {
+        buildDiscarder(logRotator(daysToKeepStr: '10', numToKeepStr: '10'))
+        timeout(time: 12, unit: 'HOURS')
+        timestamps()
     }
     stages {
+        stage('Requirements') {
+            steps {
+                // this step is required to make sure the script
+                // can be executed directly in a shell
+                sh('chmod +x ./algorithm.sh')
+            }
+        }
         stage('Build') {
             steps {
-                echo "Building.."
-                sh '''
-                echo "doing build stuff.."
-                '''
-            }
-        }
-        stage('Test') {
-            steps {
-                echo "Testing.."
-                sh '''
-                echo "doing test stuff.."
-                '''
-            }
-        }
-        stage('Deliver') {
-            steps {
-                echo 'Deliver....'
-                sh '''
-                echo "doing delivery stuff.."
-                '''
+                // the algorithm script creates a file named report.txt
+                sh('./algorithm.sh')
+
+                // this step archives the report
+                archiveArtifacts allowEmptyArchive: true,
+                    artifacts: '*.txt',
+                    fingerprint: true,
+                    onlyIfSuccessful: true
             }
         }
     }
